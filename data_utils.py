@@ -38,12 +38,14 @@ def objects_filter(data):
         depth_data = sensors_data[1]
 
         data["agents_data"][agent]["visible_environment_objects"] = []
-        for obj in environment_objects:
-            kitti_datapoint, carla_datapoint = is_visible_by_bbox(agent, obj, image, depth_data, intrinsic, extrinsic)
-            if kitti_datapoint is not None:
-                data["agents_data"][agent]["visible_environment_objects"].append(obj)
-                kitti_datapoints.append(kitti_datapoint)
-                carla_datapoints.append(carla_datapoint)
+        
+        # TODO control the class of labels
+        # for obj in environment_objects:
+        #     kitti_datapoint, carla_datapoint = is_visible_by_bbox(agent, obj, image, depth_data, intrinsic, extrinsic)
+        #     if kitti_datapoint is not None:
+        #         data["agents_data"][agent]["visible_environment_objects"].append(obj)
+        #         kitti_datapoints.append(kitti_datapoint)
+        #         carla_datapoints.append(carla_datapoint)
 
         data["agents_data"][agent]["visible_actors"] = []
 
@@ -112,9 +114,9 @@ def obj_type(obj):
     if isinstance(obj, carla.EnvironmentObject):
         return obj.type
     else:
-        if obj.type_id.find('walker') is not -1:
+        if obj.type_id.find('walker') != -1:
             return 'Pedestrian'
-        if obj.type_id.find('vehicle') is not -1:
+        if obj.type_id.find('vehicle') != -1:
             return 'Car'
         return None
 
@@ -229,7 +231,7 @@ def point_is_occluded(point, vertex_depth, depth_image):
     is_occluded = []
     for dy, dx in neigbours:
         if point_in_canvas((dy + y, dx + x)):
-            # 判断点到图像的距离是否大于深对应深度图像的深度值
+            # 判断点到图像的距离是否大于对应深度图像的深度值
             if depth_image[y + dy, x + dx] < vertex_depth:
                 is_occluded.append(True)
             else:
