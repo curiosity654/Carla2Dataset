@@ -33,9 +33,9 @@ def objects_filter(data):
         sensors_data = dataDict["sensor_data"]
         kitti_datapoints = []
         carla_datapoints = []
-        rgb_image = to_rgb_array(sensors_data[0])
-        image = rgb_image.copy()
-        depth_data = sensors_data[1]
+        rgb_images = [to_rgb_array(img) for img in sensors_data[6:12]]
+        images = rgb_images.copy()
+        depth_images = [depth_to_array(depth) for depth in sensors_data[0:6]]
 
         data["agents_data"][agent]["visible_environment_objects"] = []
         
@@ -50,27 +50,72 @@ def objects_filter(data):
         data["agents_data"][agent]["visible_actors"] = []
 
         for act in actors:
-            kitti_datapoint, carla_datapoint = is_visible_by_bbox(agent, act, image, depth_data, intrinsic, extrinsic)
+            kitti_datapoint, carla_datapoint = loose_visible(agent, act, images, depth_images, intrinsic, extrinsic)
             if kitti_datapoint is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 kitti_datapoints.append(kitti_datapoint)
                 carla_datapoints.append(carla_datapoint)
 
-        data["agents_data"][agent]["rgb_image"] = image
+        # TODO add all cams
+        data["agents_data"][agent]["cam_back"] = images[0]
+        data["agents_data"][agent]["cam_back_right"] = images[1]
+        data["agents_data"][agent]["cam_front_right"] = images[2]
+        data["agents_data"][agent]["cam_front"] = images[3]
+        data["agents_data"][agent]["cam_front_left"] = images[4]
+        data["agents_data"][agent]["cam_back_left"] = images[5]
         data["agents_data"][agent]["kitti_datapoints"] = kitti_datapoints
         data["agents_data"][agent]["carla_datapoints"] = carla_datapoints
     return data
 
+def loose_visible(agent, obj, rgb_image, depth_images, intrinsic, extrinsic):
+    obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
+    # obj_bbox = obj.bounding_box
+    # if isinstance(obj, carla.EnvironmentObject):
+    #     vertices_pos2d = bbox_2d_from_agent(intrinsic, extrinsic, obj_bbox, obj_transform, 0)
+    # else:
+    #     vertices_pos2d = bbox_2d_from_agent(intrinsic, extrinsic, obj_bbox, obj_transform, 1)
 
-def is_visible_by_bbox(agent, obj, rgb_image, depth_data, intrinsic, extrinsic):
+    obj_tp = obj_type(obj)
+    midpoint = midpoint_from_agent_location(obj_transform.location, extrinsic)
+    # bbox_2d = calc_projected_2d_bbox(vertices_pos2d)
+    rotation_y = get_relative_rotation_y(agent.get_transform().rotation, obj_transform.rotation) % math.pi
+    ext = obj.bounding_box.extent
+    truncated = 0
+    occluded = 0
+
+    velocity = "0 0 0" if isinstance(obj, carla.EnvironmentObject) else\
+        "{} {} {}".format(obj.get_velocity().x, obj.get_velocity().y, obj.get_velocity().z)
+    acceleration = "0 0 0" if isinstance(obj, carla.EnvironmentObject) else \
+        "{} {} {}".format(obj.get_acceleration().x, obj.get_acceleration().y, obj.get_acceleration().z)
+    angular_velocity = "0 0 0" if isinstance(obj, carla.EnvironmentObject) else\
+        "{} {} {}".format(obj.get_angular_velocity().x, obj.get_angular_velocity().y, obj.get_angular_velocity().z)
+    # draw_3d_bounding_box(rgb_image, vertices_pos2d)
+
+    kitti_data = KittiDescriptor()
+    kitti_data.set_truncated(truncated)
+    kitti_data.set_occlusion(occluded)
+    # kitti_data.set_bbox(bbox_2d)
+    kitti_data.set_3d_object_dimensions(ext)
+    kitti_data.set_type(obj_tp)
+    kitti_data.set_3d_object_location(midpoint)
+    kitti_data.set_rotation_y(rotation_y)
+
+    carla_data = CarlaDescriptor()
+    carla_data.set_type(obj_tp)
+    carla_data.set_velocity(velocity)
+    carla_data.set_acceleration(acceleration)
+    carla_data.set_angular_velocity(angular_velocity)
+    return kitti_data, carla_data
+
+def is_visible_by_bbox(agent, obj, rgb_image, depth_images, intrinsic, extrinsic):
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
     obj_bbox = obj.bounding_box
     if isinstance(obj, carla.EnvironmentObject):
         vertices_pos2d = bbox_2d_from_agent(intrinsic, extrinsic, obj_bbox, obj_transform, 0)
     else:
         vertices_pos2d = bbox_2d_from_agent(intrinsic, extrinsic, obj_bbox, obj_transform, 1)
-    depth_image = depth_to_array(depth_data)
-    num_visible_vertices, num_vertices_outside_camera = calculate_occlusion_stats(vertices_pos2d, depth_image)
+
+    num_visible_vertices, num_vertices_outside_camera = calculate_occlusion_stats(vertices_pos2d, depth_images)
     if num_visible_vertices >= MIN_VISIBLE_VERTICES_FOR_RENDER and num_vertices_outside_camera < MAX_OUT_VERTICES_FOR_RENDER:
         obj_tp = obj_type(obj)
         midpoint = midpoint_from_agent_location(obj_transform.location, extrinsic)
@@ -201,7 +246,7 @@ def vertex_to_world_vector(vertex):
     ])
 
 
-def calculate_occlusion_stats(vertices_pos2d, depth_image):
+def calculate_occlusion_stats(vertices_pos2d, depth_images):
     """ 作用：筛选bbox八个顶点中实际可见的点 """
     num_visible_vertices = 0
     num_vertices_outside_camera = 0

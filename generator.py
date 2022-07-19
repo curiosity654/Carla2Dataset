@@ -4,7 +4,7 @@ from config import cfg_from_yaml_file
 from data_utils import objects_filter
 
 def main():
-    cfg = cfg_from_yaml_file("configs.yaml")
+    cfg = cfg_from_yaml_file("configs_bev.yaml")
     model = SynchronyModel(cfg)
     dtsave = DataSave(cfg)
     try:

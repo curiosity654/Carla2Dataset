@@ -3,6 +3,7 @@ This file contains all the methods responsible for saving the generated data in 
 
 """
 
+from fileinput import filename
 import numpy as np
 from PIL import Image
 import os
@@ -19,9 +20,12 @@ def save_ref_files(OUTPUT_FOLDER, id):
         logging.info("Wrote reference files to %s", path)
 
 
-def save_image_data(filename, image):
-    logging.info("Wrote image data to %s", filename)
-    image.save_to_disk(filename)
+def save_image_data(path, images, id):
+    cams = ['CAM_BACK', 'CAM_BACK_RIGHT', 'CAM_FRONT_RIGHT', 'CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_BACK_LEFT']
+    for cam, image in zip(cams, images):
+        filename = path.format(cam, id)
+        logging.info("Wrote image data to %s", filename)
+        image.save_to_disk(filename)
 
 def save_bbox_image_data(filename, image):
     im = Image.fromarray(image)
