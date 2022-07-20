@@ -10,15 +10,18 @@ class DataSave:
         self.CARLA_LABEL_PATH = None
         self.IMAGE_PATH = None
         self.CALIBRATION_PATH = None
+        self.CAN_BUS_PATH = None
         self._generate_path(self.cfg["SAVE_CONFIG"]["ROOT_PATH"])
         self.captured_frame_no = self._current_captured_frame_num()
+        # TODO update scene number
+        self.scene_no = 0
 
 
     def _generate_path(self,root_path):
         """ 生成数据存储的路径"""
         PHASE = "training"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
-        folders = ['calib', 'image', 'kitti_label', 'carla_label', 'velodyne']
+        folders = ['calib', 'image', 'kitti_label', 'carla_label', 'velodyne', 'can_bus']
         cams = ['CAM_BACK', 'CAM_BACK_RIGHT', 'CAM_FRONT_RIGHT', 'CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_BACK_LEFT']
 
         for folder in folders:
@@ -35,6 +38,7 @@ class DataSave:
         self.CARLA_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'carla_label/{0:06}.txt')
         self.IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'image/{0}/{1:06}.png')
         self.CALIBRATION_PATH = os.path.join(self.OUTPUT_FOLDER, 'calib/{0:06}.txt')
+        self.CAN_BUS_PATH = os.path.join(self.OUTPUT_FOLDER, 'can_bus/scene_{0:06}.txt')
 
 
     def _current_captured_frame_num(self):
@@ -62,7 +66,8 @@ class DataSave:
         kitti_label_fname = self.KITTI_LABEL_PATH.format(self.captured_frame_no)
         carla_label_fname = self.CARLA_LABEL_PATH.format(self.captured_frame_no)
         # img_fname = self.IMAGE_PATH.format(self.captured_frame_no)
-        calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
+        # calib_filename = self.CALIBRATION_PATH.format(self.captured_frame_no)
+        can_bus_fname = self.CAN_BUS_PATH.format(self.scene_no)
 
         for agent, dt in data["agents_data"].items():
 
@@ -70,9 +75,10 @@ class DataSave:
             # lidar_transform = config_to_trans(self.cfg["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
 
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_no)
-            save_image_data(self.IMAGE_PATH, dt["sensor_data"][6:12], self.captured_frame_no)
+            save_image_data(self.IMAGE_PATH, dt["sensor_data"][7:13], self.captured_frame_no)
             save_label_data(kitti_label_fname, dt["kitti_datapoints"])
             save_label_data(carla_label_fname, dt['carla_datapoints'])
+            save_can_bus_data(can_bus_fname, dt["pose"], dt["imu"])
             # save_calibration_matrices([camera_transform, lidar_transform], calib_filename, dt["intrinsic"])
-            save_lidar_data(lidar_fname, dt["sensor_data"][2])
+            save_lidar_data(lidar_fname, dt["sensor_data"][0])
         self.captured_frame_no += 1

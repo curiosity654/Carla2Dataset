@@ -184,6 +184,8 @@ class SynchronyModel:
             data = [self._retrieve_data(q) for q in dataQue]
             assert all(x.frame == self.frame for x in data)
             ret["agents_data"][agent] = {}
+            ret["agents_data"][agent]["pose"] = agent.get_transform()
+            ret["agents_data"][agent]["imu"] = {"acc": agent.get_acceleration(), "vel": agent.get_velocity(), "rot": agent.get_angular_velocity()}
             ret["agents_data"][agent]["sensor_data"] = data
             ret["agents_data"][agent]["intrinsic"] = camera_intrinsic(image_width, image_height)
             ret["agents_data"][agent]["extrinsic"] = np.mat(
