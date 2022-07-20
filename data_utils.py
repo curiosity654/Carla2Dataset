@@ -33,9 +33,9 @@ def objects_filter(data):
         sensors_data = dataDict["sensor_data"]
         kitti_datapoints = []
         carla_datapoints = []
-        rgb_images = [to_rgb_array(img) for img in sensors_data[6:12]]
+        rgb_images = [to_rgb_array(img) for img in sensors_data[7:13]]
         images = rgb_images.copy()
-        depth_images = [depth_to_array(depth) for depth in sensors_data[0:6]]
+        depth_images = [depth_to_array(depth) for depth in sensors_data[1:7]]
 
         data["agents_data"][agent]["visible_environment_objects"] = []
         
