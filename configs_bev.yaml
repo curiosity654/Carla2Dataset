@@ -3,7 +3,7 @@ CARLA_CONFIG:
   NUM_OF_WALKERS: 10
 
 AGENT_CONFIG:
-  TRANSFORM: {location: [70, 13, 0.5], rotation: [0, 180, 0]}
+  TRANSFORM: {location: [70, 13, 0.5], rotation: [0, 0, 0]}
   BLUEPRINT: vehicle.lincoln.*
 
 SENSOR_CONFIG:

@@ -26,7 +26,7 @@ def objects_filter(data):
     environment_objects = data["environment_objects"]
     agents_data = data["agents_data"]
     actors = data["actors"]
-    actors = [x for x in actors if x.type_id.find("vehicle") != -1 or x.type_id.find("walker") != -1]
+    actors = [x for x in actors if x.type_id.find("vehicle") != -1 or x.type_id.find("pedestrian") != -1]
     for agent, dataDict in agents_data.items():
         intrinsic = dataDict["intrinsic"]
         extrinsic = dataDict["extrinsic"]
@@ -170,7 +170,8 @@ def get_relative_rotation_y(agent_rotation, obj_rotation):
 
     rot_agent = agent_rotation.yaw
     rot_car = obj_rotation.yaw
-    return degrees_to_radians(rot_agent - rot_car)
+    # return degrees_to_radians(rot_agent - rot_car)
+    return degrees_to_radians(rot_car - rot_agent)
 
 
 def bbox_2d_from_agent(intrinsic_mat, extrinsic_mat, obj_bbox, obj_transform, obj_tp):
