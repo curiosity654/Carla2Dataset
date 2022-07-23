@@ -163,6 +163,7 @@ class SynchronyModel:
             sensor = self.world.spawn_actor(sensor_bp, transform, attach_to=agent)
             self.actors["sensors"][agent].append(sensor)
         self.world.tick()
+        return True
 
     def sensor_listen(self):
         for agent, sensors in self.actors["sensors"].items():
@@ -183,13 +184,13 @@ class SynchronyModel:
         for agent, dataQue in self.data["sensor_data"].items():
             data = [self._retrieve_data(q) for q in dataQue]
             assert all(x.frame == self.frame for x in data)
+            ret["timestamp"] = self.world.get_snapshot().platform_timestamp
             ret["agents_data"][agent] = {}
             ret["agents_data"][agent]["pose"] = agent.get_transform()
             ret["agents_data"][agent]["imu"] = {"acc": agent.get_acceleration(), "vel": agent.get_velocity(), "rot": agent.get_angular_velocity()}
             ret["agents_data"][agent]["sensor_data"] = data
             ret["agents_data"][agent]["intrinsic"] = camera_intrinsic(image_width, image_height)
-            ret["agents_data"][agent]["extrinsic"] = np.mat(
-                self.actors["sensors"][agent][0].get_transform().get_matrix())
+            ret["agents_data"][agent]["extrinsic"] = self.actors["sensors"][agent][0].get_transform()
         filter_by_distance(ret, self.cfg["FILTER_CONFIG"]["PRELIMINARY_FILTER_DISTANCE"])
         return ret
 

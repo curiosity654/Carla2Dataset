@@ -4,10 +4,14 @@ import numpy as np
 from numpy.linalg import inv
 
 from config import cfg_from_yaml_file
-from data_descriptor import KittiDescriptor, CarlaDescriptor
+from data_descriptor import KittiDescriptor, CarlaDescriptor, NuscenesDescriptor
 from image_converter import depth_to_array, to_rgb_array
 import math
 from visual_utils import draw_3d_bounding_box
+from export_utils_nuscenes import get_quaternion_from_euler
+from export_utils import lidar_to_array
+import open3d as o3d
+from pyquaternion import Quaternion
 
 sys.path.append("/opt/carla-simulator/PythonAPI/carla/dist/carla-0.9.12-py3.7-linux-x86_64.egg")
 
@@ -21,7 +25,6 @@ MAX_OUT_VERTICES_FOR_RENDER = cfg["FILTER_CONFIG"]["MAX_OUT_VERTICES_FOR_RENDER"
 WINDOW_WIDTH = cfg["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_x"]
 WINDOW_HEIGHT = cfg["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"]
 
-
 def objects_filter(data):
     environment_objects = data["environment_objects"]
     agents_data = data["agents_data"]
@@ -33,9 +36,11 @@ def objects_filter(data):
         sensors_data = dataDict["sensor_data"]
         kitti_datapoints = []
         carla_datapoints = []
+        nuscenes_datapoints = []
         rgb_images = [to_rgb_array(img) for img in sensors_data[7:13]]
         images = rgb_images.copy()
         depth_images = [depth_to_array(depth) for depth in sensors_data[1:7]]
+        lidar_points = sensors_data[0]
 
         data["agents_data"][agent]["visible_environment_objects"] = []
         
@@ -50,13 +55,13 @@ def objects_filter(data):
         data["agents_data"][agent]["visible_actors"] = []
 
         for act in actors:
-            kitti_datapoint, carla_datapoint = loose_visible(agent, act, images, depth_images, intrinsic, extrinsic)
+            kitti_datapoint, carla_datapoint, nuscene_datapoint = lidar_visible(agent, act, images, depth_images, lidar_points, intrinsic, extrinsic)
             if kitti_datapoint is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 kitti_datapoints.append(kitti_datapoint)
                 carla_datapoints.append(carla_datapoint)
+                nuscenes_datapoints.append(nuscene_datapoint)
 
-        # TODO add all cams
         data["agents_data"][agent]["cam_back"] = images[0]
         data["agents_data"][agent]["cam_back_right"] = images[1]
         data["agents_data"][agent]["cam_front_right"] = images[2]
@@ -65,9 +70,17 @@ def objects_filter(data):
         data["agents_data"][agent]["cam_back_left"] = images[5]
         data["agents_data"][agent]["kitti_datapoints"] = kitti_datapoints
         data["agents_data"][agent]["carla_datapoints"] = carla_datapoints
+        data["agents_data"][agent]["nuscenes_datapoints"] = nuscenes_datapoints
+        
     return data
 
-def loose_visible(agent, obj, rgb_image, depth_images, intrinsic, extrinsic):
+def visualize(lidar_array, bbox_3d):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(lidar_array)
+    coor = o3d.geometry.TriangleMesh.create_coordinate_frame()
+    o3d.visualization.draw_geometries([pcd, bbox_3d, coor])
+
+def lidar_visible(agent, obj, rgb_image, depth_images, lidar_points, intrinsic, extrinsic):
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
     # obj_bbox = obj.bounding_box
     # if isinstance(obj, carla.EnvironmentObject):
@@ -105,7 +118,37 @@ def loose_visible(agent, obj, rgb_image, depth_images, intrinsic, extrinsic):
     carla_data.set_velocity(velocity)
     carla_data.set_acceleration(acceleration)
     carla_data.set_angular_velocity(angular_velocity)
-    return kitti_data, carla_data
+
+    nuscenes_data = NuscenesDescriptor()
+    nuscenes_data.set_carla_id(obj.id)
+    nuscenes_data.set_attribute_tokens([])
+    nuscenes_data.set_visibility_token("")
+    size = [ext.x*2, ext.y*2, ext.z*2]
+    loc = obj_transform.location
+    loc = [loc.x, loc.y, loc.z]
+    if obj_tp == "Car":
+        loc[2] += size[2]/2
+        midpoint[2] += size[2]/2
+    rot = obj_transform.rotation
+    quat = get_quaternion_from_euler(rot.pitch, rot.yaw, rot.roll, to_rad=True)
+    nuscenes_data.set_translation(loc)
+    nuscenes_data.set_rotation(quat)
+    nuscenes_data.set_size(size)
+    center = midpoint[0:3]
+    quat_relative = get_quaternion_from_euler(0, rotation_y, 0)
+    R = Quaternion(quat_relative).rotation_matrix
+    extent = np.array(size)
+    bbox_3d = o3d.geometry.OrientedBoundingBox(center=center, R=R, extent=extent)
+
+    # TODO encapsulate a lidar point converter
+    lidar_array = lidar_to_array(lidar_points)[:,:3]
+    num_lidar_pts = len(bbox_3d.get_point_indices_within_bounding_box(o3d.utility.Vector3dVector(lidar_array)))
+    if num_lidar_pts < 10:
+        # lidar invisible
+        return None, None, None
+    nuscenes_data.set_num_lidar_pts(num_lidar_pts)
+
+    return kitti_data, carla_data, nuscenes_data
 
 def is_visible_by_bbox(agent, obj, rgb_image, depth_images, intrinsic, extrinsic):
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
@@ -174,7 +217,8 @@ def get_relative_rotation_y(agent_rotation, obj_rotation):
     return degrees_to_radians(rot_car - rot_agent)
 
 
-def bbox_2d_from_agent(intrinsic_mat, extrinsic_mat, obj_bbox, obj_transform, obj_tp):
+def bbox_2d_from_agent(intrinsic_mat, extrinsic, obj_bbox, obj_transform, obj_tp):
+    extrinsic_mat = np.mat(extrinsic.get_matrix())
     bbox = vertices_from_extension(obj_bbox.extent)
     if obj_tp == 1:
         bbox_transform = carla.Transform(obj_bbox.location, obj_bbox.rotation)
@@ -286,8 +330,9 @@ def point_is_occluded(point, vertex_depth, depth_image):
     return all(is_occluded)
 
 
-def midpoint_from_agent_location(location, extrinsic_mat):
+def midpoint_from_agent_location(location, extrinsic):
     """ 将agent在世界坐标系中的中心点转换到相机坐标系下 """
+    extrinsic_mat = np.mat(extrinsic.get_matrix())
     midpoint_vector = np.array([
         [location.x],  # [[X,
         [location.y],  # Y,

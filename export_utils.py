@@ -11,25 +11,6 @@ import logging
 import math
 import carla
 
-def get_quaternion_from_euler(roll, pitch, yaw):
-  """
-  Convert an Euler angle to a quaternion.
-   
-  Input
-    :param roll: The roll (rotation around x-axis) angle in radians.
-    :param pitch: The pitch (rotation around y-axis) angle in radians.
-    :param yaw: The yaw (rotation around z-axis) angle in radians.
- 
-  Output
-    :return qx, qy, qz, qw: The orientation in quaternion [x,y,z,w] format
-  """
-  qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-  qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
-  qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
-  qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
- 
-  return [qx, qy, qz, qw]
-
 def save_ref_files(OUTPUT_FOLDER, id):
     """ Appends the id of the given record to the files """
     for name in ['train.txt', 'val.txt', 'trainval.txt']:
@@ -49,6 +30,19 @@ def save_image_data(path, images, id):
 def save_bbox_image_data(filename, image):
     im = Image.fromarray(image)
     im.save(filename)
+
+def lidar_to_array(point_cloud):
+    point_cloud = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
+    point_cloud = np.reshape(point_cloud, (int(point_cloud.shape[0] / 4), 4))
+    point_cloud = point_cloud[:, :-1]
+
+    # TODO use variable intensity
+    # TODO refactor to nuscenes export_utils
+    lidar_array = [[point[0], point[1], point[2], 1.0]
+                    for point in point_cloud]
+    lidar_array = np.array(lidar_array).astype(np.float32)
+
+    return lidar_array
 
 def save_lidar_data(filename, point_cloud, format="bin"):
     """ Saves lidar data to given filename, according to the lidar data format.
@@ -78,8 +72,9 @@ def save_lidar_data(filename, point_cloud, format="bin"):
         point_cloud = np.reshape(point_cloud, (int(point_cloud.shape[0] / 4), 4))
         point_cloud = point_cloud[:, :-1]
 
+        # TODO use variable intensity
         lidar_array = [[point[0], -point[1], point[2], 1.0]
-                       for point in point_cloud]
+                        for point in point_cloud]
         lidar_array = np.array(lidar_array).astype(np.float32)
         logging.debug("Lidar min/max of x: {} {}".format(
                       lidar_array[:, 0].min(), lidar_array[:, 0].max()))
@@ -95,23 +90,6 @@ def save_label_data(filename, datapoints):
         out_str = "\n".join([str(point) for point in datapoints if point])
         f.write(out_str)
     logging.info("Wrote kitti data to %s", filename)
-
-def save_can_bus_data(filename, pose, imu):
-    can_bus = []
-    for vec in [pose.location, pose.rotation, imu["acc"], imu["vel"], imu["rot"]]:
-        if type(vec) is carla.libcarla.Rotation:
-            roll = vec.roll
-            pitch = vec.pitch
-            yaw = vec.yaw
-            quat = get_quaternion_from_euler(roll, pitch, yaw)
-            can_bus.extend(quat)
-        else:
-            can_bus.append(vec.x)
-            can_bus.append(vec.y)
-            can_bus.append(vec.z)
-    
-    with open(filename, 'a') as f:
-        f.write(str(can_bus).lstrip("[").rstrip("]")+"\n")
 
 def save_calibration_matrices(transform, filename, intrinsic_mat):
     """ Saves the calibration matrices to a file.
