@@ -20,6 +20,7 @@
 
 from typing import List
 from math import pi
+from uuid import uuid1
 
 class KittiDescriptor:
     """
@@ -158,3 +159,74 @@ class CarlaDescriptor:
     def __str__(self):
         return "{} {} {} {}".format(self.type, self.velocity, self.acceleration, self.angular_velocity)
 
+class NuscenesDescriptor:
+    """
+    Nuscenes格式的label类
+    """
+    def __init__(self):
+        self.carla_id = 0
+        self.token = uuid1().hex
+        self.sample_token = ""
+        self.instance_token = ""
+        self.attribute_tokens = []
+        self.visibility_token = ""
+        self.translation = []
+        self.size = []
+        self.rotation = []
+        self.num_lidar_pts = 0
+        self.next = ""
+        self.prev = ""
+    
+    def set_carla_id(self, carla_id: int):
+        self.carla_id = carla_id
+
+    def set_sample_token(self, sample_token: str):
+        self.sample_token = sample_token
+
+    def set_instance_token(self, instance_token: str):
+        self.instance_token = instance_token
+
+    def set_attribute_tokens(self, attribute_tokens: list):
+        self.attribute_tokens = attribute_tokens
+
+    def set_visibility_token(self, visibility_token: str):
+        self.visibility_token = visibility_token
+
+    def set_translation(self, translation: list):
+        assert len(translation) == 3
+        self.translation = translation
+
+    def set_size(self, size: list):
+        assert len(size) == 3
+        self.size = size
+
+    def set_rotation(self, rotation: list):
+        assert len(rotation) == 4
+        self.rotation = rotation
+
+    def set_num_lidar_pts(self, num_lidar_pts: int):
+        self.num_lidar_pts = num_lidar_pts
+
+    def set_next(self, next: str):
+        self.next = next
+
+    def set_prev(self, prev: str):
+        self.prev = prev
+
+    def to_json(self):
+        sample_annotation = {
+            "token": self.token,
+            "sample_token": self.sample_token,
+            "instance_token": self.instance_token,
+            "attribute_tokens": self.attribute_tokens,
+            "visibility_token": self.visibility_token,
+            "translation": self.translation,
+            "size": self.size,
+            "rotation": self.rotation,
+            "num_lidar_pts": self.num_lidar_pts,
+            "num_radar_pts": 0, # reserve for further use
+            "next": self.next,
+            "prev": self.prev
+        }
+
+        return sample_annotation
