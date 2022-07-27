@@ -11,7 +11,7 @@ def main():
         model.set_synchrony()
         model.spawn_actors()
         model.set_actors_route()
-        spawn_agent_suc = model.spawn_agent()
+        model.spawn_agent()
         model.sensor_listen()
         dtsave.init_scene()
 
@@ -21,16 +21,16 @@ def main():
         SCENE_NUM = cfg["SAVE_CONFIG"]["SCENE_NUM"]
         while True:
             if step % STEP == 0:
-                # TODO add tokens
                 data = model.tick()
-                dtsave.save_sample(data["timestamp"])
                 data = objects_filter(data)
+                dtsave.timestamp = data["timestamp"]
                 dtsave.save_training_files(data)
+                dtsave.save_sample()
                 if dtsave.sample_id % SAMPLE_PER_SCENE == 0 and dtsave.sample_id > 0:
                     dtsave.save_scene()
-                    dtsave.init_scene()
                     if dtsave.scene_id == SCENE_NUM:
                         break
+                    dtsave.init_scene()
             else:
                 model.world.tick()
             step += 1
