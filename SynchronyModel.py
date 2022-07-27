@@ -179,8 +179,8 @@ class SynchronyModel:
 
         ret["environment_objects"] = self.world.get_environment_objects(carla.CityObjectLabel.Any)
         ret["actors"] = self.world.get_actors()
-        image_width = self.cfg["SENSOR_CONFIG"]["DEPTH_BACK"]["ATTRIBUTE"]["image_size_x"]
-        image_height = self.cfg["SENSOR_CONFIG"]["DEPTH_BACK"]["ATTRIBUTE"]["image_size_y"]
+        image_width = self.cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["image_size_x"]
+        image_height = self.cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["image_size_y"]
         for agent, dataQue in self.data["sensor_data"].items():
             data = [self._retrieve_data(q) for q in dataQue]
             assert all(x.frame == self.frame for x in data)
