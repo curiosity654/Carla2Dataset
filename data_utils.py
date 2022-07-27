@@ -37,9 +37,9 @@ def objects_filter(data):
         kitti_datapoints = []
         carla_datapoints = []
         nuscenes_datapoints = []
-        rgb_images = [to_rgb_array(img) for img in sensors_data[7:13]]
+        rgb_images = [to_rgb_array(img) for img in sensors_data[1:7]]
         images = rgb_images.copy()
-        depth_images = [depth_to_array(depth) for depth in sensors_data[1:7]]
+        # depth_images = [depth_to_array(depth) for depth in sensors_data[1:7]]
         lidar_points = sensors_data[0]
 
         data["agents_data"][agent]["visible_environment_objects"] = []
@@ -55,7 +55,7 @@ def objects_filter(data):
         data["agents_data"][agent]["visible_actors"] = []
 
         for act in actors:
-            kitti_datapoint, carla_datapoint, nuscene_datapoint = lidar_visible(agent, act, images, depth_images, lidar_points, intrinsic, extrinsic)
+            kitti_datapoint, carla_datapoint, nuscene_datapoint = lidar_visible(agent, act, images, lidar_points, intrinsic, extrinsic)
             if kitti_datapoint is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 kitti_datapoints.append(kitti_datapoint)
@@ -80,7 +80,7 @@ def visualize(lidar_array, bbox_3d):
     coor = o3d.geometry.TriangleMesh.create_coordinate_frame()
     o3d.visualization.draw_geometries([pcd, bbox_3d, coor])
 
-def lidar_visible(agent, obj, rgb_image, depth_images, lidar_points, intrinsic, extrinsic):
+def lidar_visible(agent, obj, rgb_image, lidar_points, intrinsic, extrinsic):
     obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
     # obj_bbox = obj.bounding_box
     # if isinstance(obj, carla.EnvironmentObject):
@@ -127,20 +127,23 @@ def lidar_visible(agent, obj, rgb_image, depth_images, lidar_points, intrinsic, 
     loc = obj_transform.location
     loc = [loc.x, loc.y, loc.z]
     if obj_tp == "Car":
+        # TODO remove hard coded category
+        nuscenes_data.set_category("vehicle.car")
         loc[2] += size[2]/2
         midpoint[2] += size[2]/2
+    else:
+        nuscenes_data.set_category("human.pedestrian.adult")
     rot = obj_transform.rotation
     quat = get_quaternion_from_euler(rot.pitch, rot.yaw, rot.roll, to_rad=True)
     nuscenes_data.set_translation(loc)
     nuscenes_data.set_rotation(quat)
-    nuscenes_data.set_size(size)
+    nuscenes_data.set_size([size[1], size[0], size[2]])
     center = midpoint[0:3]
     quat_relative = get_quaternion_from_euler(0, rotation_y, 0)
     R = Quaternion(quat_relative).rotation_matrix
     extent = np.array(size)
     bbox_3d = o3d.geometry.OrientedBoundingBox(center=center, R=R, extent=extent)
 
-    # TODO encapsulate a lidar point converter
     lidar_array = lidar_to_array(lidar_points)[:,:3]
     num_lidar_pts = len(bbox_3d.get_point_indices_within_bounding_box(o3d.utility.Vector3dVector(lidar_array)))
     if num_lidar_pts < 10:

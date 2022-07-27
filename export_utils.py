@@ -73,7 +73,7 @@ def save_lidar_data(filename, point_cloud, format="bin"):
         point_cloud = point_cloud[:, :-1]
 
         # TODO use variable intensity
-        lidar_array = [[point[0], -point[1], point[2], 1.0]
+        lidar_array = [[point[0], point[1], point[2], 1.0, 0]
                         for point in point_cloud]
         lidar_array = np.array(lidar_array).astype(np.float32)
         logging.debug("Lidar min/max of x: {} {}".format(
