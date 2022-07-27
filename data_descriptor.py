@@ -166,6 +166,7 @@ class NuscenesDescriptor:
     def __init__(self):
         self.carla_id = 0
         self.token = uuid1().hex
+        self.category = ""
         self.sample_token = ""
         self.instance_token = ""
         self.attribute_tokens = []
@@ -179,6 +180,9 @@ class NuscenesDescriptor:
     
     def set_carla_id(self, carla_id: int):
         self.carla_id = carla_id
+
+    def set_category(self, category: str):
+        self.category = category
 
     def set_sample_token(self, sample_token: str):
         self.sample_token = sample_token
