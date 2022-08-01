@@ -125,7 +125,7 @@ def lidar_visible(agent, obj, rgb_image, lidar_points, intrinsic, extrinsic):
     nuscenes_data.set_visibility_token("")
     size = [ext.x*2, ext.y*2, ext.z*2]
     loc = obj_transform.location
-    loc = [loc.x, loc.y, loc.z]
+    loc = [-loc.x, loc.y, loc.z]
     if obj_tp == "Car":
         # TODO remove hard coded category
         nuscenes_data.set_category("vehicle.car")
@@ -134,7 +134,7 @@ def lidar_visible(agent, obj, rgb_image, lidar_points, intrinsic, extrinsic):
     else:
         nuscenes_data.set_category("human.pedestrian.adult")
     rot = obj_transform.rotation
-    quat = get_quaternion_from_euler(rot.pitch, rot.yaw, rot.roll, to_rad=True)
+    quat = get_quaternion_from_euler(rot.pitch, rot.yaw+180, rot.roll, to_rad=True)
     nuscenes_data.set_translation(loc)
     nuscenes_data.set_rotation(quat)
     nuscenes_data.set_size([size[1], size[0], size[2]])
