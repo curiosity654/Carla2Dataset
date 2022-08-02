@@ -4,7 +4,7 @@ from uuid import uuid1
 
 from config import config_to_trans
 from export_utils import *
-from export_utils_nuscenes import append_json, extend_json, save_can_bus_data, save_sample_annotation, get_quaternion_from_euler
+from export_utils_nuscenes import append_json, extend_json, save_can_bus_data, get_quaternion_from_euler
 from data_utils import camera_intrinsic
 
 class DataSave:
@@ -105,17 +105,20 @@ class DataSave:
             if modality == "camera":
                 width = cfg["SENSOR_CONFIG"][s]["ATTRIBUTE"]["image_size_x"]
                 height = cfg["SENSOR_CONFIG"][s]["ATTRIBUTE"]["image_size_y"]
-                rotation = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["quat"]
+                fov = cfg["SENSOR_CONFIG"][s]["ATTRIBUTE"]["fov"]
+                # rotation = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["quat"]
                 # euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]
                 # rotation = get_quaternion_from_euler(euler[0], euler[1], euler[2], to_rad=True)
-                intrinsic = camera_intrinsic(width, height).tolist()
+                intrinsic = camera_intrinsic(width, height, fov).tolist()
                 sensor["width"] = width
                 sensor["height"] = height
             else:
-                euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]
-                rotation = get_quaternion_from_euler(*euler, to_rad=True)
+                # euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]
+                # rotation = get_quaternion_from_euler(*euler, to_rad=True)
                 intrinsic = []
-            # rotation = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["quat"]
+            rotation = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["quat"]
+            # euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]
+            # rotation = get_quaternion_from_euler(*euler, to_rad=True)
             calibration = {
                 "token": calib_token,
                 "sensor_token": sensor_token,
@@ -154,11 +157,11 @@ class DataSave:
         return num_existing_data_files
 
     def save_ego_pose_data(self, filename, pose):
-        x = pose.location.x
+        x = -pose.location.x
         y = pose.location.y
         z = pose.location.z
         pitch = pose.rotation.pitch
-        yaw = pose.rotation.yaw
+        yaw = pose.rotation.yaw+180
         roll = pose.rotation.roll
         ego_pose = {
             "token": uuid1().hex,
@@ -190,16 +193,23 @@ class DataSave:
             # save_label_data(carla_label_fname, dt['carla_datapoints'])
             self.post_proc_sample_annotation(dt['nuscenes_datapoints'])
             self.save_instance()
-            save_sample_annotation(self.SAMPLE_ANNO_PATH, dt['nuscenes_datapoints'])
+            self.save_sample_annotation(self.SAMPLE_ANNO_PATH)
             # save_calibration_matrices([camera_transform, lidar_transform], calib_filename, dt["intrinsic"])
             save_lidar_data(lidar_fname, dt["sensor_data"][0])
         self.captured_frame_id += 1
+
+    def save_sample_annotation(self, filename):
+        anno_jsons = []
+        for anno in self.annos:
+            anno_json = anno.to_json()
+            anno_jsons.append(anno_json)
+        extend_json(filename, anno_jsons)
 
     def post_proc_sample_annotation(self, annos):
         # traverse the annotation for a sample and update instance & sample info
         for anno in annos:
             anno.set_sample_token(self.sample_token)
-            if anno.carla_id not in self.instances:
+            if str(anno.carla_id) not in self.instances:
                 instance = {
                     "carla_id": anno.carla_id,
                     "token": uuid1().hex,
@@ -211,7 +221,7 @@ class DataSave:
                 self.instances[str(instance["carla_id"])] = instance
             else:
                 # TODO optimze performance
-                for prev_anno in annos:
+                for prev_anno in self.annos:
                     if prev_anno.token == self.instances[str(anno.carla_id)]["last_annotation_token"]:
                         prev_anno.set_next(anno.token)
                         anno.set_prev(prev_anno.token)
@@ -219,6 +229,7 @@ class DataSave:
                 self.instances[str(anno.carla_id)]["last_annotation_token"] = anno.token
                 instance = self.instances[str(anno.carla_id)]
             anno.set_instance_token(instance["token"])
+            self.annos.append(anno)
     
     def init_scene(self):
         print("scene: {}".format(self.scene_id))
@@ -228,6 +239,7 @@ class DataSave:
         self.samples = []
         self.next_sample_token = uuid1().hex
         self.instances = {}
+        self.annos = []
 
         self.scene = {
             "token": uuid1().hex,
@@ -241,24 +253,15 @@ class DataSave:
 
     def save_scene(self):
         self.scene["nbr_samples"] = self.sample_id
-        self.scene["last_sample_token"] = self.sample_token
+        self.scene["last_sample_token"] = self.prev_sample_token
         extend_json(self.SAMPLE_PATH, self.samples)
         append_json(self.SCENE_PATH, self.scene)
+    
+    def init_sample(self):
+        # TODO decouple init sample
+        pass
 
     def save_sample(self):
-        self.timestamp = self.timestamp
-        print("sample: {}".format(self.sample_id))
-        if self.sample_id == 0:
-            pass # Done in init_scene
-        else:
-            self.prev_sample_token = self.sample_token
-            self.sample_token = self.next_sample_token
-            self.next_sample_token = uuid1().hex
-
-            for prev_sample in self.samples:
-                if prev_sample["token"] == self.prev_sample_token:
-                    prev_sample["next"] = self.sample_token
-
         sample = {
             "token": self.sample_token,
             "timestamp": self.timestamp,
@@ -266,21 +269,35 @@ class DataSave:
             "next": "",
             "prev": self.prev_sample_token
         }
-        
+
+        # if self.sample_id == 0:
+        #     self.sample_token = self.next_sample_token
+        #     self.next_sample_token = uuid1().hex
+        # else:
+
+        for prev_sample in self.samples:
+            if prev_sample["token"] == self.prev_sample_token:
+                prev_sample["next"] = self.sample_token
+
+        self.prev_sample_token = self.sample_token
+        self.sample_token = self.next_sample_token
+        self.next_sample_token = uuid1().hex
+
         self.samples.append(sample)
         self.sample_id += 1
+        print("sample: {}".format(self.sample_id))
 
     def save_sample_data(self, data):
         sample_datas = []
         # TODO save sensor data here
         for i, sensor in enumerate(self.sensors):
             if sensor["modality"] == "lidar":
-                filename = "velodyne/{0:06}.bin".format(self.sample_id)
+                filename = "velodyne/{0:06}.bin".format(self.captured_frame_id)
                 fileformat = "pcd"
                 width = 0
                 height = 0
             elif sensor["modality"] == "camera":
-                filename = "image/{0}/{1:06}.png".format(sensor["channel"], self.sample_id)
+                filename = "image/{0}/{1:06}.png".format(sensor["channel"], self.captured_frame_id)
                 fileformat = "jpg"
                 width = sensor["width"]
                 height = sensor["height"]
