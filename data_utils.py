@@ -17,18 +17,19 @@ sys.path.append("/opt/carla-simulator/PythonAPI/carla/dist/carla-0.9.12-py3.7-li
 
 import carla
 
-cfg = cfg_from_yaml_file("configs.yaml")
+cfg = cfg_from_yaml_file("configs_bev.yaml")
 
 MAX_RENDER_DEPTH_IN_METERS = cfg["FILTER_CONFIG"]["MAX_RENDER_DEPTH_IN_METERS"]
 MIN_VISIBLE_VERTICES_FOR_RENDER = cfg["FILTER_CONFIG"]["MIN_VISIBLE_VERTICES_FOR_RENDER"]
 MAX_OUT_VERTICES_FOR_RENDER = cfg["FILTER_CONFIG"]["MAX_OUT_VERTICES_FOR_RENDER"]
-WINDOW_WIDTH = cfg["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_x"]
-WINDOW_HEIGHT = cfg["SENSOR_CONFIG"]["DEPTH_RGB"]["ATTRIBUTE"]["image_size_y"]
+WINDOW_WIDTH = cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["image_size_x"]
+WINDOW_HEIGHT = cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["image_size_y"]
 
 def objects_filter(data):
     environment_objects = data["environment_objects"]
     agents_data = data["agents_data"]
     actors = data["actors"]
+    snapshot = data["snapshot"]
     actors = [x for x in actors if x.type_id.find("vehicle") != -1 or x.type_id.find("pedestrian") != -1]
     for agent, dataDict in agents_data.items():
         intrinsic = dataDict["intrinsic"]
@@ -55,7 +56,7 @@ def objects_filter(data):
         data["agents_data"][agent]["visible_actors"] = []
 
         for act in actors:
-            kitti_datapoint, carla_datapoint, nuscene_datapoint = lidar_visible(agent, act, images, lidar_points, intrinsic, extrinsic)
+            kitti_datapoint, carla_datapoint, nuscene_datapoint = lidar_visible(agent, act, snapshot, images, lidar_points, intrinsic, extrinsic)
             if kitti_datapoint is not None:
                 data["agents_data"][agent]["visible_actors"].append(act)
                 kitti_datapoints.append(kitti_datapoint)
@@ -80,19 +81,22 @@ def visualize(lidar_array, bbox_3d):
     coor = o3d.geometry.TriangleMesh.create_coordinate_frame()
     o3d.visualization.draw_geometries([pcd, bbox_3d, coor])
 
-def lidar_visible(agent, obj, rgb_image, lidar_points, intrinsic, extrinsic):
-    obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
+def lidar_visible(agent, actor, snapshot, rgb_image, lidar_points, intrinsic, extrinsic):
+    # obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
+    id = actor.id
+    obj = snapshot.find(id)
+    obj_transform = obj.get_transform()
     # obj_bbox = obj.bounding_box
     # if isinstance(obj, carla.EnvironmentObject):
     #     vertices_pos2d = bbox_2d_from_agent(intrinsic, extrinsic, obj_bbox, obj_transform, 0)
     # else:
     #     vertices_pos2d = bbox_2d_from_agent(intrinsic, extrinsic, obj_bbox, obj_transform, 1)
 
-    obj_tp = obj_type(obj)
+    obj_tp = obj_type(actor)
     midpoint = midpoint_from_agent_location(obj_transform.location, extrinsic)
     # bbox_2d = calc_projected_2d_bbox(vertices_pos2d)
     rotation_y = get_relative_rotation_y(agent.get_transform().rotation, obj_transform.rotation) % math.pi
-    ext = obj.bounding_box.extent
+    ext = actor.bounding_box.extent
     truncated = 0
     occluded = 0
 
@@ -120,7 +124,7 @@ def lidar_visible(agent, obj, rgb_image, lidar_points, intrinsic, extrinsic):
     carla_data.set_angular_velocity(angular_velocity)
 
     nuscenes_data = NuscenesDescriptor()
-    nuscenes_data.set_carla_id(obj.id)
+    nuscenes_data.set_carla_id(id)
     nuscenes_data.set_attribute_tokens([])
     nuscenes_data.set_visibility_token("")
     size = [ext.x*2, ext.y*2, ext.z*2]
@@ -346,11 +350,11 @@ def midpoint_from_agent_location(location, extrinsic):
     return transformed_3d_midpoint
 
 
-def camera_intrinsic(width, height):
+def camera_intrinsic(width, height, fov):
     k = np.identity(3)
     k[0, 2] = width / 2.0
     k[1, 2] = height / 2.0
-    f = width / (2.0 * math.tan(90.0 * math.pi / 360.0))
+    f = width / (2.0 * np.tan(fov * np.pi / 360.0))
     k[0, 0] = k[1, 1] = f
     return k
 
