@@ -6,71 +6,72 @@ AGENT_CONFIG:
   TRANSFORM: {location: [70, 13, 0.5], rotation: [0, 0, 0]}
   BLUEPRINT: vehicle.lincoln.mkz_2020
 
-ANNOTATE_CATEGORIES: {walker: 95a2750e08f711eda11f90ccdfb713b2, vehicle: 9e1b355e08f711eda11f90ccdfb713b2}
+ANNOTATE_CATEGORIES: {human.pedestrian.adult: 95a2750e08f711eda11f90ccdfb713b2, vehicle.car: 9e1b355e08f711eda11f90ccdfb713b2}
 
 SENSOR_CONFIG:
-  LIDAR:
-    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 0, 0 ]}
+  LIDAR_TOP:
+    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 0, 0 ], quat: [0.7077955119163518,-0.006492242056004365,0.010646214713995808,-0.7063073142877817]}
     BLUEPRINT: sensor.lidar.ray_cast
     ATTRIBUTE: {range: 60, rotation_frequency: 20, horizontal_fov: 360, points_per_second: 600000, channels: 64}
 
-  DEPTH_BACK:
-    TRANSFORM: {location: [-1.3, 0, 1.6], rotation: [0, 180, 0]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: {image_size_x: 300, image_size_y: 300, fov: 60}
+  # DEPTH_BACK:
+  #   TRANSFORM: {location: [-1.3, 0, 1.6], rotation: [0, 180, 0]}
+  #   BLUEPRINT: sensor.camera.depth
+  #   ATTRIBUTE: {image_size_x: 300, image_size_y: 300, fov: 60}
 
-  DEPTH_BACK_RIGHT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
+  # DEPTH_BACK_RIGHT:
+  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
+  #   BLUEPRINT: sensor.camera.depth
+  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
-  DEPTH_FRONT_RIGHT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 60, 0 ]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
+  # DEPTH_FRONT_RIGHT:
+  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 60, 0 ]}
+  #   BLUEPRINT: sensor.camera.depth
+  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
-  DEPTH_FRONT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 0, 0 ]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
+  # DEPTH_FRONT:
+  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 0, 0 ]}
+  #   BLUEPRINT: sensor.camera.depth
+  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
-  DEPTH_FRONT_LEFT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
+  # DEPTH_FRONT_LEFT:
+  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
+  #   BLUEPRINT: sensor.camera.depth
+  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
-  DEPTH_BACK_LEFT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 240, 0 ]}
-    BLUEPRINT: sensor.camera.depth
-    ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
-
+  # DEPTH_BACK_LEFT:
+  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 240, 0 ]}
+  #   BLUEPRINT: sensor.camera.depth
+  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
+  
+  # quat is for conversion to nusc coords
   CAM_BACK:
-    TRANSFORM: {location: [-1.3, 0, 1.6], rotation: [0, 180, 0]}
+    TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 180, 0], quat: [0.5, -0.5, -0.5, 0.5]}
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: {image_size_x: 300, image_size_y: 300, fov: 60}
 
   CAM_BACK_RIGHT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
+    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 120, 0 ], quat: [0.1830127, -0.1830127, -0.6830127, 0.6830127]}
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
   CAM_FRONT_RIGHT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 60, 0 ]}
+    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 60, 0 ], quat: [-0.1830127, 0.1830127, -0.6830127, 0.6830127]}
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
   CAM_FRONT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 0, 0 ]}
+    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 0, 0 ], quat: [0.5, -0.5, 0.5, -0.5]}
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
   CAM_FRONT_LEFT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
+    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 300, 0 ], quat: [0.6830127, -0.6830127, 0.1830127, -0.1830127]}
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
   CAM_BACK_LEFT:
-    TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 240, 0 ]}
+    TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 240, 0 ], quat: [0.6830127, -0.6830127, -0.1830127, 0.1830127]}
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
@@ -81,7 +82,7 @@ FILTER_CONFIG:
   MAX_OUT_VERTICES_FOR_RENDER: 5
 
 SAVE_CONFIG:
-  ROOT_PATH: data/nuscenes
-  STEP: 20
-  SAMPLE_PER_SCENE: 20
-  SCENE_NUM: 10
+  ROOT_PATH: data/nuscenes/
+  STEP: 10
+  SAMPLE_PER_SCENE: 5
+  SCENE_NUM: 2
