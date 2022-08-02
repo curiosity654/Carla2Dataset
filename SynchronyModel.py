@@ -179,17 +179,20 @@ class SynchronyModel:
 
         ret["environment_objects"] = self.world.get_environment_objects(carla.CityObjectLabel.Any)
         ret["actors"] = self.world.get_actors()
+        ret["snapshot"] = self.world.get_snapshot()
+        ret["timestamp"] = ret["snapshot"].platform_timestamp
         image_width = self.cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["image_size_x"]
         image_height = self.cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["image_size_y"]
+        fov = self.cfg["SENSOR_CONFIG"]["CAM_BACK"]["ATTRIBUTE"]["fov"]
+        
         for agent, dataQue in self.data["sensor_data"].items():
             data = [self._retrieve_data(q) for q in dataQue]
             assert all(x.frame == self.frame for x in data)
-            ret["timestamp"] = self.world.get_snapshot().platform_timestamp
             ret["agents_data"][agent] = {}
             ret["agents_data"][agent]["pose"] = agent.get_transform()
             ret["agents_data"][agent]["imu"] = {"acc": agent.get_acceleration(), "vel": agent.get_velocity(), "rot": agent.get_angular_velocity()}
             ret["agents_data"][agent]["sensor_data"] = data
-            ret["agents_data"][agent]["intrinsic"] = camera_intrinsic(image_width, image_height)
+            ret["agents_data"][agent]["intrinsic"] = camera_intrinsic(image_width, image_height, fov)
             ret["agents_data"][agent]["extrinsic"] = self.actors["sensors"][agent][0].get_transform()
         filter_by_distance(ret, self.cfg["FILTER_CONFIG"]["PRELIMINARY_FILTER_DISTANCE"])
         return ret
