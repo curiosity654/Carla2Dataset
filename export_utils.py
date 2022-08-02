@@ -73,8 +73,17 @@ def save_lidar_data(filename, point_cloud, format="bin"):
         point_cloud = point_cloud[:, :-1]
 
         # TODO use variable intensity
-        lidar_array = [[point[0], point[1], point[2], 1.0, 0]
-                        for point in point_cloud]
+        rot_matrix = np.mat([
+            [0,1,0],
+            [-1,0,0],
+            [0,0,1]
+        ])
+
+        lidar_array = [[-point[0], point[1], point[2]] for point in point_cloud]
+        # , 1.0, 0
+        lidar_array = np.array(lidar_array).astype(np.float32)
+        lidar_array = np.array(np.dot(rot_matrix, lidar_array.T).T)
+        lidar_array = [[point[0], point[1], point[2], 1.0, 0] for point in lidar_array]
         lidar_array = np.array(lidar_array).astype(np.float32)
         logging.debug("Lidar min/max of x: {} {}".format(
                       lidar_array[:, 0].min(), lidar_array[:, 0].max()))

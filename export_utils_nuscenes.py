@@ -39,6 +39,11 @@ def get_quaternion_from_euler(pitch, yaw, roll, to_rad=False):
   Output
     :return qx, qy, qz, qw: The orientation in quaternion [w,x,y,z] format
   """
+  # temp for coord trans
+
+  yaw = -yaw
+  roll = -roll
+
   def degrees_to_radians(degrees):
     return degrees * math.pi / 180
 
@@ -119,12 +124,12 @@ def save_label_data(filename, datapoints):
         f.write(out_str)
     logging.info("Wrote kitti data to %s", filename)
 
-def save_sample_annotation(filename, annos):
-    anno_jsons = []
-    for anno in annos:
-        anno_json = anno.to_json()
-        anno_jsons.append(anno_json)
-    extend_json(filename, anno_jsons)
+# def save_sample_annotation(filename, annos):
+#     anno_jsons = []
+#     for anno in annos:
+#         anno_json = anno.to_json()
+#         anno_jsons.append(anno_json)
+#     extend_json(filename, anno_jsons)
 
 def save_can_bus_data(filename, pose, imu):
     can_bus = []
