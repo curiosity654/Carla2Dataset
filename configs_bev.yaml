@@ -1,13 +1,21 @@
 CARLA_CONFIG:
+  # Actor 数量控制
   NUM_OF_VEHICLES: 40
   NUM_OF_WALKERS: 20
 
 AGENT_CONFIG:
+  # Agent 车型，初始位置控制
   TRANSFORM: {location: [70, 13, 0.5], rotation: [0, 0, 0]}
   BLUEPRINT: vehicle.lincoln.mkz_2020
 
+# 标注的类别以及 token，对应 Nuscenes 中的 categories.json
 ANNOTATE_CATEGORIES: {human.pedestrian.adult: 95a2750e08f711eda11f90ccdfb713b2, vehicle.car: 9e1b355e08f711eda11f90ccdfb713b2}
 
+# 传感器配置
+  # location 和 rotation 控制 carla 中生成 sensor 时相对 agent 的变换，其中xy是相对几何中心，z是相对车底
+  # quat 是临时添加用于输出到数据集中的旋转信息，对应 calibrated_sensor.json，
+  # 由于 Nuscenes 中的 lidar 和相机的 xyz 坐标不对应，
+  # 若希望该参数使用rotation自动生成，则需要在代码中单独判断处理
 SENSOR_CONFIG:
   LIDAR_TOP:
     TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 0, 0 ], quat: [0.7077955119163518,-0.006492242056004365,0.010646214713995808,-0.7063073142877817]}
@@ -44,12 +52,14 @@ SENSOR_CONFIG:
     BLUEPRINT: sensor.camera.rgb
     ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
 
+# 代码中生成标注的预筛（在该范围外的物体一定不会出现在标注中）
 FILTER_CONFIG:
   PRELIMINARY_FILTER_DISTANCE: 50
   MAX_RENDER_DEPTH_IN_METERS: 50
   MIN_VISIBLE_VERTICES_FOR_RENDER: 3
   MAX_OUT_VERTICES_FOR_RENDER: 5
 
+# 生成路径、数量控制
 SAVE_CONFIG:
   ROOT_PATH: data/nuscenes/
   STEP: 10

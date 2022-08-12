@@ -106,6 +106,7 @@ class DataSave:
                 width = cfg["SENSOR_CONFIG"][s]["ATTRIBUTE"]["image_size_x"]
                 height = cfg["SENSOR_CONFIG"][s]["ATTRIBUTE"]["image_size_y"]
                 fov = cfg["SENSOR_CONFIG"][s]["ATTRIBUTE"]["fov"]
+                # TODO automatic extrinsic calculation
                 # rotation = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["quat"]
                 # euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]
                 # rotation = get_quaternion_from_euler(euler[0], euler[1], euler[2], to_rad=True)
@@ -113,8 +114,6 @@ class DataSave:
                 sensor["width"] = width
                 sensor["height"] = height
             else:
-                # euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]
-                # rotation = get_quaternion_from_euler(*euler, to_rad=True)
                 intrinsic = []
             rotation = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["quat"]
             # euler = cfg["SENSOR_CONFIG"][s]["TRANSFORM"]["rotation"]

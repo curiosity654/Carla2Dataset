@@ -63,6 +63,7 @@ def save_lidar_data(filename, point_cloud, format="bin"):
         This corresponds to the following changes from Carla to Kitti
             Carla: X   Y   Z
             KITTI: X  -Y   Z
+            Nuscenes: X  -Y   Z
         NOTE: We do not flip the coordinate system when saving to .ply.
     """
     logging.info("Wrote lidar data to %s", filename)
@@ -80,8 +81,8 @@ def save_lidar_data(filename, point_cloud, format="bin"):
         ])
 
         lidar_array = [[-point[0], point[1], point[2]] for point in point_cloud]
-        # , 1.0, 0
         lidar_array = np.array(lidar_array).astype(np.float32)
+        # transform to right-handed coords
         lidar_array = np.array(np.dot(rot_matrix, lidar_array.T).T)
         lidar_array = [[point[0], point[1], point[2], 1.0, 0] for point in lidar_array]
         lidar_array = np.array(lidar_array).astype(np.float32)

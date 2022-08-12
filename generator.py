@@ -37,6 +37,5 @@ def main():
     finally:
         model.setting_recover()
 
-
 if __name__ == '__main__':
     main()

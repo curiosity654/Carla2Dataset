@@ -82,6 +82,10 @@ def visualize(lidar_array, bbox_3d):
     o3d.visualization.draw_geometries([pcd, bbox_3d, coor])
 
 def lidar_visible(agent, actor, snapshot, rgb_image, lidar_points, intrinsic, extrinsic):
+    '''
+    Use lidar to filter visible objects
+    '''
+
     # obj_transform = obj.transform if isinstance(obj, carla.EnvironmentObject) else obj.get_transform()
     id = actor.id
     obj = snapshot.find(id)
