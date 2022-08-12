@@ -1,6 +1,6 @@
 CARLA_CONFIG:
-  NUM_OF_VEHICLES: 30
-  NUM_OF_WALKERS: 10
+  NUM_OF_VEHICLES: 40
+  NUM_OF_WALKERS: 20
 
 AGENT_CONFIG:
   TRANSFORM: {location: [70, 13, 0.5], rotation: [0, 0, 0]}
@@ -13,38 +13,7 @@ SENSOR_CONFIG:
     TRANSFORM: { location: [ 0, 0, 1.6 ], rotation: [ 0, 0, 0 ], quat: [0.7077955119163518,-0.006492242056004365,0.010646214713995808,-0.7063073142877817]}
     BLUEPRINT: sensor.lidar.ray_cast
     ATTRIBUTE: {range: 60, rotation_frequency: 20, horizontal_fov: 360, points_per_second: 600000, channels: 64}
-
-  # DEPTH_BACK:
-  #   TRANSFORM: {location: [-1.3, 0, 1.6], rotation: [0, 180, 0]}
-  #   BLUEPRINT: sensor.camera.depth
-  #   ATTRIBUTE: {image_size_x: 300, image_size_y: 300, fov: 60}
-
-  # DEPTH_BACK_RIGHT:
-  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
-  #   BLUEPRINT: sensor.camera.depth
-  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
-
-  # DEPTH_FRONT_RIGHT:
-  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 60, 0 ]}
-  #   BLUEPRINT: sensor.camera.depth
-  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
-
-  # DEPTH_FRONT:
-  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 0, 0 ]}
-  #   BLUEPRINT: sensor.camera.depth
-  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
-
-  # DEPTH_FRONT_LEFT:
-  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 120, 0 ]}
-  #   BLUEPRINT: sensor.camera.depth
-  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
-
-  # DEPTH_BACK_LEFT:
-  #   TRANSFORM: { location: [ 1, 0, 1.6 ], rotation: [ 0, 240, 0 ]}
-  #   BLUEPRINT: sensor.camera.depth
-  #   ATTRIBUTE: { image_size_x: 300, image_size_y: 300, fov: 60}
-  
-  # quat is for conversion to nusc coords
+    
   CAM_BACK:
     TRANSFORM: {location: [0, 0, 1.6], rotation: [0, 180, 0], quat: [0.5, -0.5, -0.5, 0.5]}
     BLUEPRINT: sensor.camera.rgb
@@ -85,4 +54,4 @@ SAVE_CONFIG:
   ROOT_PATH: data/nuscenes/
   STEP: 10
   SAMPLE_PER_SCENE: 5
-  SCENE_NUM: 2
+  SCENE_NUM: 5
