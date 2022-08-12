@@ -4,7 +4,7 @@ from uuid import uuid1
 
 from config import config_to_trans
 from export_utils import *
-from export_utils_nuscenes import append_json, extend_json, save_can_bus_data, get_quaternion_from_euler
+from export_utils_nuscenes import append_json, extend_json, get_quaternion_from_euler
 from data_utils import camera_intrinsic
 
 class DataSave:
@@ -12,28 +12,28 @@ class DataSave:
         self.cfg = cfg
         self.OUTPUT_FOLDER = None
         self.LIDAR_PATH = None
-        self.KITTI_LABEL_PATH = None
-        self.CARLA_LABEL_PATH = None
+        # self.KITTI_LABEL_PATH = None
+        # self.CARLA_LABEL_PATH = None
         self.IMAGE_PATH = None
-        self.CALIBRATION_PATH = None
+        # self.CALIBRATION_PATH = None
         self.CAN_BUS_PATH = None
         self.ROOT_PATH = self.cfg["SAVE_CONFIG"]["ROOT_PATH"]
-        self._generate_path(self.ROOT_PATH)
-        self.captured_frame_id = self._current_captured_frame_num()
+        self.generate_path(self.ROOT_PATH)
+        self.captured_frame_id = self.current_captured_frame_num()
         # Nuscenes
         self.scene_id = 0
         self.sample_id = 0
         self.instances = {}
-        self._save_calibrated_sensors(cfg)
-        self._save_category(cfg)
+        self.save_calibrated_sensors(cfg)
+        self.save_category(cfg)
 
 
-    def _generate_path(self,root_path):
+    def generate_path(self,root_path):
         """ 生成数据存储的路径"""
         PHASE = "training"
         VERSION = "mini"
         self.OUTPUT_FOLDER = os.path.join(root_path, PHASE)
-        folders = ['calib', 'image', 'kitti_label', 'carla_label', 'velodyne', 'can_bus', VERSION]
+        folders = ['image', 'velodyne', 'can_bus', VERSION]
         cams = ['CAM_BACK', 'CAM_BACK_RIGHT', 'CAM_FRONT_RIGHT', 'CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_BACK_LEFT']
 
         for folder in folders:
@@ -46,10 +46,10 @@ class DataSave:
                 os.makedirs(directory)
 
         self.LIDAR_PATH = os.path.join(self.OUTPUT_FOLDER, 'velodyne/{0:06}.bin')
-        self.KITTI_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'kitti_label/{0:06}.txt')
-        self.CARLA_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'carla_label/{0:06}.txt')
+        # self.KITTI_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'kitti_label/{0:06}.txt')
+        # self.CARLA_LABEL_PATH = os.path.join(self.OUTPUT_FOLDER, 'carla_label/{0:06}.txt')
         self.IMAGE_PATH = os.path.join(self.OUTPUT_FOLDER, 'image/{0}/{1:06}.png')
-        self.CALIBRATION_PATH = os.path.join(self.OUTPUT_FOLDER, 'calib/{0:06}.txt')
+        # self.CALIBRATION_PATH = os.path.join(self.OUTPUT_FOLDER, 'calib/{0:06}.txt')
         # Nuscenes
         self.CAN_BUS_PATH = os.path.join(self.OUTPUT_FOLDER, 'can_bus/scene_{0:06}.txt')
         self.SENSORS_PATH = os.path.join(self.OUTPUT_FOLDER, VERSION, 'sensor.json')
@@ -73,7 +73,7 @@ class DataSave:
             with open(file, "w") as f:
                 json.dump([], f)
 
-    def _save_category(self, cfg):
+    def save_category(self, cfg):
         categorys = []
         for k, v in cfg["ANNOTATE_CATEGORIES"].items():
             categorys.append(
@@ -87,7 +87,7 @@ class DataSave:
             json.dump(categorys, f, indent=2)
 
     # TODO change func name to a more generalized one
-    def _save_calibrated_sensors(self, cfg):
+    def save_calibrated_sensors(self, cfg):
         sensors = []
         calibrations = []
         self.last_sample_data_tokens = []
@@ -137,11 +137,11 @@ class DataSave:
         with open(self.CALIBRATED_SENSORS_PATH, "w") as f:
             json.dump(calibrations, f, indent=2)
 
-    def _current_captured_frame_num(self):
+    def current_captured_frame_num(self):
         """获取文件夹中存在的数据量"""
-        label_path = os.path.join(self.OUTPUT_FOLDER, 'kitti_label/')
+        label_path = os.path.join(self.OUTPUT_FOLDER, 'velodyne/')
         num_existing_data_files = len(
-            [name for name in os.listdir(label_path) if name.endswith('.txt')])
+            [name for name in os.listdir(label_path) if name.endswith('.bin')])
         print("当前存在{}个数据".format(num_existing_data_files))
         if num_existing_data_files == 0:
             return 0
@@ -172,6 +172,23 @@ class DataSave:
         self.ego_pose = ego_pose
         append_json(filename, ego_pose)
 
+    def save_can_bus_data(self, filename, pose, imu):
+        can_bus = []
+        for vec in [pose.location, pose.rotation, imu["acc"], imu["vel"], imu["rot"]]:
+            if type(vec) is carla.libcarla.Rotation:
+                pitch = vec.pitch
+                yaw = vec.yaw
+                roll = vec.roll
+                quat = get_quaternion_from_euler(pitch, yaw, roll, to_rad=True)
+                can_bus.extend(quat)
+            else:
+                can_bus.append(vec.x)
+                can_bus.append(vec.y)
+                can_bus.append(vec.z)
+        
+        with open(filename, 'a') as f:
+            f.write(str(can_bus).lstrip("[").rstrip("]")+"\n")
+
     def save_training_files(self, data):
 
         lidar_fname = self.LIDAR_PATH.format(self.captured_frame_id)
@@ -184,7 +201,7 @@ class DataSave:
         for agent, dt in data["agents_data"].items():
             # camera_transform= config_to_trans(self.cfg["SENSOR_CONFIG"]["RGB"]["TRANSFORM"])
             # lidar_transform = config_to_trans(self.cfg["SENSOR_CONFIG"]["LIDAR"]["TRANSFORM"])
-            save_can_bus_data(can_bus_fname, dt["pose"], dt["imu"])
+            self.save_can_bus_data(can_bus_fname, dt["pose"], dt["imu"])
             self.save_ego_pose_data(self.EGO_POSE_PATH, dt["pose"])
             save_ref_files(self.OUTPUT_FOLDER, self.captured_frame_id)
             save_image_data(self.IMAGE_PATH, dt["sensor_data"][1:7], self.captured_frame_id)
@@ -193,7 +210,6 @@ class DataSave:
             # save_label_data(carla_label_fname, dt['carla_datapoints'])
             self.post_proc_sample_annotation(dt['nuscenes_datapoints'])
             self.save_instance()
-            self.save_sample_annotation(self.SAMPLE_ANNO_PATH)
             # save_calibration_matrices([camera_transform, lidar_transform], calib_filename, dt["intrinsic"])
             save_lidar_data(lidar_fname, dt["sensor_data"][0])
         self.captured_frame_id += 1
@@ -285,6 +301,8 @@ class DataSave:
 
         self.samples.append(sample)
         self.sample_id += 1
+        self.save_sample_annotation(self.SAMPLE_ANNO_PATH)
+        self.annos = []
         print("sample: {}".format(self.sample_id))
 
     def save_sample_data(self, data):
